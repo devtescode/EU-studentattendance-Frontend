@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/RoleLayout";
-import { useApp } from "@/context/AppContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,136 +10,314 @@ export const Route = createFileRoute("/lecturer/sessions-attendance")({
   component: SessionsAttendance,
 });
 
+const API_URL = "http://localhost:4000";
+
+const DAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
 function SessionsAttendance() {
-  const { user, courses, sessions, students, attendance, createSession, markAttendance } = useApp();
-  const myCourses = courses.filter((c) => c.lecturerId === user?.id);
-  const mySessions = sessions.filter((s) => myCourses.some((c) => c.id === s.courseId));
+  const token = sessionStorage.getItem("lecturer_token");
+
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    courseId: myCourses[0]?.id ?? "",
-    date: new Date().toISOString().slice(0, 10),
-    startTime: "09:00",
-    endTime: "11:00",
+    courseCode: "",
+    courseTitle: "",
+    days: [] as string[],
+    startTime: "",
+    endTime: "",
   });
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.courseId) return toast.error("Select a course");
-    createSession(form);
-    toast.success("Attendance session created");
+  // ================= FETCH SESSIONS (REAL TIME) =================
+  const fetchSessions = async () => {
+    try {
+      const res = await fetch(`${API_URL}/session/my-sessions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await res.json();
+      if (res.ok) setSessions(data.sessions || []);
+    } catch {
+      toast.error("Failed to load sessions");
+    }
   };
 
-  const activeSession = mySessions.find((s) => s.id === activeSessionId) ?? mySessions[0];
-  const activeCourse = activeSession ? courses.find((c) => c.id === activeSession.courseId) : null;
-  const enrolled = activeCourse ? students.filter((s) => activeCourse.registeredStudentIds.includes(s.id)) : [];
+  useEffect(() => {
+    fetchSessions();
+
+    // REAL-TIME UPDATE
+    const interval = setInterval(() => {
+      fetchSessions();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // ================= TOGGLE DAYS =================
+  const toggleDay = (day: string) => {
+    setForm((prev) => {
+      const exists = prev.days.includes(day);
+      return {
+        ...prev,
+        days: exists
+          ? prev.days.filter((d) => d !== day)
+          : [...prev.days, day],
+      };
+    });
+  };
+
+  // ================= CREATE / UPDATE =================
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (
+      !form.courseCode ||
+      !form.courseTitle ||
+      !form.days.length ||
+      !form.startTime ||
+      !form.endTime
+    ) {
+      return toast.error("All fields are required");
+    }
+
+    try {
+      const url = isEditing
+        ? `${API_URL}/session/update/${editId}`
+        : `${API_URL}/session/create`;
+
+      const method = isEditing ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) return toast.error(data.message);
+
+      toast.success(isEditing ? "Updated successfully" : "Created successfully");
+
+      setForm({
+        courseCode: "",
+        courseTitle: "",
+        days: [],
+        startTime: "",
+        endTime: "",
+      });
+
+      setIsEditing(false);
+      setEditId(null);
+
+      fetchSessions();
+    } catch {
+      toast.error("Network error");
+    }
+  };
+
+  // ================= EDIT =================
+  const handleEdit = (session: any) => {
+    setForm({
+      courseCode: session.courseCode,
+      courseTitle: session.courseTitle,
+      days: session.days || [],
+      startTime: session.startTime,
+      endTime: session.endTime,
+    });
+
+    setEditId(session._id);
+    setIsEditing(true);
+  };
+
+  // ================= DELETE =================
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this schedule?")) return;
+
+    try {
+      const res = await fetch(`${API_URL}/session/delete/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) return toast.error(data.message);
+
+      toast.success("Deleted successfully");
+      fetchSessions();
+    } catch {
+      toast.error("Network error");
+    }
+  };
+
+  const activeSession =
+    sessions.find((s) => s._id === activeSessionId) || sessions[0];
 
   return (
     <div>
-      <PageHeader title="Sessions & Attendance" subtitle="Create attendance sessions and mark students" />
+      <PageHeader
+        title="Lecturer Schedule Manager"
+        subtitle="Create, edit and manage lecture schedules (Real-time)"
+      />
+
       <div className="grid gap-6 lg:grid-cols-3">
-        <form onSubmit={submit} className="rounded-2xl bg-white border shadow-sm p-6 space-y-3 lg:col-span-1">
-          <h3 className="font-semibold">Create Session</h3>
+        {/* ================= FORM ================= */}
+        <form
+          onSubmit={submit}
+          className="bg-white border rounded-2xl p-6 space-y-4 lg:col-span-1"
+        >
+          <h3 className="font-semibold">
+            {isEditing ? "Edit Schedule" : "Create Schedule"}
+          </h3>
+          <Label>Course Code</Label>
+          <Input
+            placeholder="Course Code (CSC 201)"
+            value={form.courseCode}
+            onChange={(e) =>
+              setForm({ ...form, courseCode: e.target.value })
+            }
+          />
+
+          <Label>Course Title</Label>
+          <textarea
+            className="w-full border rounded-md p-2 text-sm"
+            rows={3}
+            placeholder="Course Title"
+            value={form.courseTitle}
+            onChange={(e) =>
+              setForm({ ...form, courseTitle: e.target.value })
+            }
+          />
+
+          {/* DAYS */}
           <div>
-            <Label>Course</Label>
-            <select
-              value={form.courseId}
-              onChange={(e) => setForm({ ...form, courseId: e.target.value })}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-            >
-              <option value="">Select course</option>
-              {myCourses.map((c) => <option key={c.id} value={c.id}>{c.code} — {c.title}</option>)}
-            </select>
+            <Label>Days</Label>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {DAYS.map((day) => (
+                <label key={day} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.days.includes(day)}
+                    onChange={() => toggleDay(day)}
+                  />
+                  {day}
+                </label>
+              ))}
+            </div>
           </div>
-          <div>
-            <Label>Date</Label>
-            <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-          </div>
+
+          {/* TIME */}
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label>Start</Label>
-              <Input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
-            </div>
-            <div>
-              <Label>End</Label>
-              <Input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} />
-            </div>
+            
+            <Input
+              type="time"
+              value={form.startTime}
+              onChange={(e) =>
+                setForm({ ...form, startTime: e.target.value })
+              }
+            />
+
+            <Input
+              type="time"
+              value={form.endTime}
+              onChange={(e) =>
+                setForm({ ...form, endTime: e.target.value })
+              }
+            />
           </div>
-          <Button type="submit" className="w-full bg-[#006B3C] hover:bg-[#024d2c]">Create Session</Button>
+
+          <Button className="w-full bg-[#006B3C]">
+            {isEditing ? "Update Schedule" : "Create Schedule"}
+          </Button>
         </form>
 
-        <div className="rounded-2xl bg-white border shadow-sm p-6 lg:col-span-2">
-          <h3 className="font-semibold mb-3">Active Sessions ({mySessions.length})</h3>
-          {mySessions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No sessions yet. Create one to get started.</p>
+        {/* ================= LIST ================= */}
+        <div className="lg:col-span-2 bg-white border rounded-2xl p-6">
+          <h3 className="font-semibold mb-3">
+            ACTIVE SCHEDULES ({sessions.length})
+          </h3>
+
+          {sessions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No schedules yet
+            </p>
           ) : (
-            <div className="space-y-2">
-              {mySessions.map((s) => {
-                const c = courses.find((co) => co.id === s.courseId);
-                const active = (activeSession?.id ?? mySessions[0]?.id) === s.id;
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => setActiveSessionId(s.id)}
-                    className={`w-full text-left rounded-xl border p-3 flex items-center justify-between transition ${active ? "bg-[#E6F2EC] border-[#006B3C]" : "hover:bg-[#F5F7FA]"}`}
+            sessions.map((s) => (
+              <div
+                key={s._id}
+                className="border rounded-xl p-3 mb-2 flex justify-between items-start"
+              >
+                <button
+                  onClick={() => setActiveSessionId(s._id)}
+                  className="text-left"
+                >
+                  <p className="font-medium">
+                    {s.courseCode} — {s.courseTitle}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {s.days?.join(", ")} | {s.startTime} - {s.endTime}
+                  </p>
+                </button>
+
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEdit(s)}
                   >
-                    <div>
-                      <p className="font-medium">{c?.code} — {c?.title}</p>
-                      <p className="text-xs text-muted-foreground">{s.date} · {s.startTime}–{s.endTime}</p>
-                    </div>
-                    <span className="text-xs font-medium text-[#006B3C]">View</span>
-                  </button>
-                );
-              })}
-            </div>
+                    Edit
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDelete(s._id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>
 
-      {activeSession && activeCourse && (
-        <div className="mt-6 rounded-2xl bg-white border shadow-sm p-6">
-          <h3 className="font-semibold mb-3">
-            Attendance — {activeCourse.code} ({activeSession.date})
+      {/* ================= ACTIVE DETAILS ================= */}
+      {activeSession && (
+        <div className="mt-6 bg-white border rounded-2xl p-6">
+          <h3 className="font-semibold mb-2">
+            Selected Schedule Preview
           </h3>
-          {enrolled.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No students enrolled in this course.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-muted-foreground border-b">
-                  <th className="py-2">Matric</th>
-                  <th className="py-2">Name</th>
-                  <th className="py-2">Status</th>
-                  <th className="py-2 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {enrolled.map((s) => {
-                  const rec = attendance.find((a) => a.sessionId === activeSession.id && a.studentId === s.id);
-                  return (
-                    <tr key={s.id} className="border-b last:border-0">
-                      <td className="py-2 font-mono text-xs">{s.matricNo}</td>
-                      <td className="py-2 font-medium">{s.name}</td>
-                      <td className="py-2">
-                        {rec ? (
-                          <span className="text-xs font-medium px-2 py-1 rounded-full bg-[#E6F2EC] text-[#006B3C]">Present</span>
-                        ) : (
-                          <span className="text-xs font-medium px-2 py-1 rounded-full bg-muted text-muted-foreground">Pending</span>
-                        )}
-                      </td>
-                      <td className="py-2 text-right">
-                        <Button size="sm" variant="outline" disabled={!!rec} onClick={() => markAttendance(activeSession.id, s.id)}>
-                          Mark Present
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
+
+          <p>
+            <b>Course:</b> {activeSession.courseCode}
+          </p>
+          <p>
+            <b>Title:</b> {activeSession.courseTitle}
+          </p>
+          <p>
+            <b>Days:</b> {activeSession.days?.join(", ")}
+          </p>
+          <p>
+            <b>Time:</b> {activeSession.startTime} - {activeSession.endTime}
+          </p>
         </div>
       )}
     </div>
   );
-}
+} 
