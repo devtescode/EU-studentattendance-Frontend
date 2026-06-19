@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/RoleLayout";
-import { useApp } from "@/context/AppContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -8,36 +8,132 @@ export const Route = createFileRoute("/student/available-courses")({
   component: AvailableCourses,
 });
 
+const API_URL = "http://localhost:4000";
+
 function AvailableCourses() {
-  const { user, courses, lecturers, registerCourse } = useApp();
+  const token = sessionStorage.getItem("student_token");
+
+  const [courses, setCourses] = useState<any[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState("");
+
+  const fetchCourses = async () => {
+    try {
+      const res = await fetch(`${API_URL}/students/getallcoursebystudent`);
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setCourses(data.courses || []);
+      }
+    } catch {
+      toast.error("Failed to load courses");
+    }
+  };
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const registerCourse = async () => {
+    if (!selectedCourse) {
+      return toast.error("Please select a course");
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/students/register-course`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          courseId: selectedCourse,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        return toast.error(data.message);
+      }
+
+      toast.success("Course registered successfully");
+    } catch {
+      toast.error("Network error");
+    }
+  };
+
+  const selected = courses.find(
+    (course) => course._id === selectedCourse
+  );
+
   return (
     <div>
-      <PageHeader title="Available Courses" subtitle="Register for the courses you wish to attend" />
-      <div className="grid gap-3 md:grid-cols-2">
-        {courses.map((c) => {
-          const lec = lecturers.find((l) => l.id === c.lecturerId);
-          const registered = c.registeredStudentIds.includes(user?.id ?? "");
-          return (
-            <div key={c.id} className="rounded-2xl bg-white border shadow-sm p-5 flex flex-col">
-              <p className="text-xs uppercase tracking-wide text-[#C9A227] font-semibold">{c.code}</p>
-              <p className="font-semibold mt-1">{c.title}</p>
-              <p className="text-xs text-muted-foreground mt-1">Lecturer: {lec?.name ?? "—"}</p>
-              <div className="mt-4">
-                <Button
-                  disabled={registered}
-                  onClick={() => {
-                    registerCourse(user?.id ?? "", c.id);
-                    toast.success(`Registered for ${c.code}`);
-                  }}
-                  className="bg-[#006B3C] hover:bg-[#024d2c]"
-                >
-                  {registered ? "Registered" : "Register"}
-                </Button>
-              </div>
-            </div>
-          );
-        })}
+      <PageHeader
+        title="Available Courses"
+        subtitle="Register for lecturer courses"
+      />
+
+      <div className="max-w-2xl bg-white border rounded-2xl p-6 shadow-sm">
+        <label className="block text-sm font-medium mb-2">
+          Select Course
+        </label>
+
+        <select
+          value={selectedCourse}
+          onChange={(e) => setSelectedCourse(e.target.value)}
+          className="w-full border rounded-lg p-3"
+        >
+          <option value="">Select Course</option>
+
+          {courses.map((course) => (
+            <option
+              key={course._id}
+              value={course._id}
+            >
+              {course.courseCode} - {course.courseTitle}
+            </option>
+          ))}
+        </select>
+
+        {selected && (
+          <div className="mt-4 p-4 bg-gray-50 rounded-xl border">
+            <p>
+              <strong>Course Code:</strong>{" "}
+              {selected.courseCode}
+            </p>
+
+            <p>
+              <strong>Course Title:</strong>{" "}
+              {selected.courseTitle}
+            </p>
+
+            <p>
+              <strong>Lecturer:</strong>{" "}
+              {selected.lecturerName}
+            </p>
+
+            <p>
+              <strong>Days:</strong>{" "}
+              {selected.days?.join(", ")}
+            </p>
+
+            <p>
+              <strong>Time:</strong>{" "}
+              {selected.startTime} - {selected.endTime}
+            </p>
+          </div>
+        )}
+
+        <Button
+          onClick={registerCourse}
+          className="w-full mt-4 bg-[#006B3C]"
+        >
+          Register Course
+        </Button>
       </div>
     </div>
   );
 }
+
+export default AvailableCourses;

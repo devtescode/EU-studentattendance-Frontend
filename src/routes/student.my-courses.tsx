@@ -1,79 +1,151 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/RoleLayout";
-import { useApp } from "@/context/AppContext";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+ import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/student/my-courses")({
   component: StudentMyCourses,
 });
 
-function StudentMyCourses() {
-  const { user, courses, sessions, lecturers, markAttendance, attendance } = useApp();
-  const myCourses = courses.filter((c) => c.registeredStudentIds.includes(user?.id ?? ""));
+const API_URL = "http://localhost:4000";
 
-  const isOpen = (s: { date: string; startTime: string; endTime: string }) => {
-    const now = new Date();
-    const start = new Date(`${s.date}T${s.startTime}`);
-    const end = new Date(`${s.date}T${s.endTime}`);
-    return now >= start && now <= end;
+function StudentMyCourses() {
+  const token = sessionStorage.getItem("student_token");
+
+  const [courses, setCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchMyCourses = async () => {
+    try {
+      const res = await fetch(`${API_URL}/students/my-courses`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setCourses(data.courses || []);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+
+
+const unregisterCourse = async (courseId: string) => {
+  toast("Are you sure you want to remove this course?", {
+    action: {
+      label: "Yes, remove",
+      onClick: async () => {
+        try {
+          const res = await fetch(
+            `${API_URL}/students/unregister-course/${courseId}`,
+            {
+              method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            return toast.error(data.message);
+          }
+
+          setCourses((prev) =>
+            prev.filter((course) => course._id !== courseId)
+          );
+
+          toast.success("Course removed successfully");
+        } catch (error) {
+          console.log(error);
+          toast.error("Network error");
+        }
+      },
+    },
+    cancel: {
+      label: "Cancel",
+      onClick: () => {
+        toast.message("Action cancelled");
+      },
+    },
+  });
+};
+
+  useEffect(() => {
+    fetchMyCourses();
+  }, []);
 
   return (
     <div>
-      <PageHeader title="My Courses" subtitle="Your enrolled courses and active sessions" />
-      {myCourses.length === 0 ? (
-        <p className="text-sm text-muted-foreground">You are not enrolled in any courses yet.</p>
+      <PageHeader
+        title="My Courses"
+        subtitle="Courses you have successfully registered"
+      />
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground">
+          Loading courses...
+        </p>
+      ) : courses.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No registered courses found.
+        </p>
       ) : (
-        <div className="space-y-4">
-          {myCourses.map((c) => {
-            const lec = lecturers.find((l) => l.id === c.lecturerId);
-            const courseSessions = sessions.filter((s) => s.courseId === c.id);
-            return (
-              <div key={c.id} className="rounded-2xl bg-white border shadow-sm p-5">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-[#C9A227] font-semibold">{c.code}</p>
-                    <p className="font-semibold">{c.title}</p>
-                    <p className="text-xs text-muted-foreground">Lecturer: {lec?.name ?? "—"}</p>
-                  </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {courses.map((course) => (
+            <div
+              key={course._id}
+              className="bg-white border rounded-2xl p-5 shadow-sm"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[#C9A227] font-semibold">
+                    {course.courseCode}
+                  </p>
+
+                  <h3 className="font-semibold text-lg mt-1">
+                    {course.courseTitle}
+                  </h3>
                 </div>
-                <div className="mt-3 space-y-2">
-                  {courseSessions.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No sessions scheduled.</p>
-                  ) : (
-                    courseSessions.map((s) => {
-                      const open = isOpen(s);
-                      const marked = attendance.some((a) => a.sessionId === s.id && a.studentId === user?.id);
-                      return (
-                        <div key={s.id} className="border rounded-xl p-3 flex items-center justify-between">
-                          <div className="text-sm">
-                            <p className="font-medium">{s.date} · {s.startTime}–{s.endTime}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {marked ? "Marked present" : open ? "Session is open" : "Not active"}
-                            </p>
-                          </div>
-                          <Button
-                            size="sm"
-                            disabled={!open || marked}
-                            onClick={() => {
-                              markAttendance(s.id, user?.id ?? "");
-                              toast.success("Attendance marked");
-                            }}
-                            className="bg-[#006B3C] hover:bg-[#024d2c]"
-                          >
-                            {marked ? "Done" : "Mark"}
-                          </Button>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
+
+                <button
+                  onClick={() => unregisterCourse(course._id)}
+                  className="px-3 py-1 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600"
+                >
+                  Remove
+                </button>
               </div>
-            );
-          })}
+
+              <p className="text-sm text-gray-500 mt-2">
+                Lecturer: {course.lecturerId?.name || "Unknown"}
+              </p>
+
+              <div className="mt-3 text-sm text-gray-600">
+                <p>
+                  <strong>Days:</strong>{" "}
+                  {course.days?.join(", ")}
+                </p>
+
+                <p>
+                  <strong>Time:</strong>{" "}
+                  {course.startTime} - {course.endTime}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
+
+export default StudentMyCourses;
