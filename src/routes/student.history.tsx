@@ -27,8 +27,6 @@ function History() {
 
       if (res.ok) {
         setAttendance(data.attendance || []);
-        console.log(data.attendance);
-
       }
     } catch (error) {
       console.log(error);
@@ -60,46 +58,48 @@ function History() {
             <thead>
               <tr className="text-left border-b bg-gray-50">
                 <th className="py-3 px-2">Course</th>
-                {/* <th className="py-3 px-2">Date</th> */}
-                {/* <th className="py-3 px-2">Time</th> */}
+                <th className="py-3 px-2">Week</th>
                 <th className="py-3 px-2">Marked At</th>
                 <th className="py-3 px-2">Status</th>
               </tr>
             </thead>
 
             <tbody>
-              {attendance.map((a) => (
-                <tr key={a._id} className="border-b last:border-0">
-                  <td className="py-3 px-2 font-medium">
-                    {a.course?.code} — {a.course?.title}
-                  </td>
+              {attendance
+                .filter((a) => a.course?.code && a.course?.title) // 🔥 hide deleted courses
+                .map((a) => (
+                  <tr key={a._id} className="border-b last:border-0">
+                    {/* COURSE */}
+                    <td className="py-3 px-2 font-medium text-gray-800">
+                      {a.course.code} — {a.course.title}
+                    </td>
 
-                  {/* <td className="py-3 px-2">
-                    {a.session?.date || "N/A"}
-                  </td>
+                    {/* WEEK */}
+                    <td className="py-3 px-2 text-gray-600">
+                      {a.weekKey || "N/A"}
+                    </td>
 
-                  <td className="py-3 px-2">
-                    {a.session?.startTime} - {a.session?.endTime}
-                  </td> */}
+                    {/* MARKED AT */}
+                    <td className="py-3 px-2 text-gray-500">
+                      {a.markedAt
+                        ? new Date(a.markedAt).toLocaleString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "N/A"}
+                    </td>
 
-                  {/* 🔥 TIME STUDENT MARKED ATTENDANCE */}
-                  <td className="py-3 px-2 text-gray-500">
-                    {new Date(a.markedAt).toLocaleString('en-US', {
-                      month: 'short',   // 'Jun'
-                      day: 'numeric',   // '6'
-                      year: 'numeric',  // '2026'
-                      hour: 'numeric',  // '2'
-                      minute: '2-digit' // '30'
-                    })}
-                  </td>
-
-                  <td className="py-3 px-2">
-                    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#E6F2EC] text-[#006B3C] capitalize">
-                      {a.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                    {/* STATUS */}
+                    <td className="py-3 px-2">
+                      <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#E6F2EC] text-[#006B3C] capitalize">
+                        present
+                      </span>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         )}

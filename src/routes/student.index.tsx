@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { PageHeader, StatCard } from "@/components/RoleLayout";
 import { toast } from "sonner";
@@ -15,13 +15,10 @@ function StudentDashboard() {
   const [myCourses, setMyCourses] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [attendanceCount, setAttendanceCount] = useState(0);
-
-  // 🔥 NEW: track attended sessions
   const [attendedSessions, setAttendedSessions] = useState<string[]>([]);
-
   const [loading, setLoading] = useState(true);
 
-  // ---------------- FETCH COURSES ----------------
+  // ---------------- COURSES ----------------
   const fetchCourses = async () => {
     try {
       const res = await fetch(`${API_URL}/students/my-courses`, {
@@ -29,16 +26,13 @@ function StudentDashboard() {
       });
 
       const data = await res.json();
-
-      if (res.ok) {
-        setMyCourses(data.courses || []);
-      }
-    } catch (error) {
-      console.log(error);
+      if (res.ok) setMyCourses(data.courses || []);
+    } catch (err) {
+      console.log(err);
     }
   };
 
-  // ---------------- FETCH SESSIONS ----------------
+  // ---------------- SESSIONS (WEEKLY ACTIVE) ----------------
   const fetchSessions = async () => {
     try {
       const res = await fetch(`${API_URL}/attendance/student-attendance`, {
@@ -46,16 +40,13 @@ function StudentDashboard() {
       });
 
       const data = await res.json();
-
-      if (res.ok) {
-        setSessions(data.sessions || []);
-      }
-    } catch (error) {
-      console.log(error);
+      if (res.ok) setSessions(data.sessions || []);
+    } catch (err) {
+      console.log(err);
     }
   };
 
-  // ---------------- FETCH ATTENDANCE COUNT ----------------
+  // ---------------- ATTENDANCE HISTORY (THIS WEEK) ----------------
   const fetchAttendanceCount = async () => {
     try {
       const res = await fetch(`${API_URL}/attendance/my-attendance`, {
@@ -67,34 +58,44 @@ function StudentDashboard() {
       if (res.ok) {
         setAttendanceCount(data.attendance?.length || 0);
 
-        // 🔥 IMPORTANT: store attended session IDs
-        const ids = data.attendance?.map((a: any) => a.sessionId) || [];
+        const ids = (data.attendance || [])
+          .map((a: any) => a.sessionId?._id || a.sessionId)
+          .filter(Boolean)
+          .map(String);
+
         setAttendedSessions(ids);
       }
-    } catch (error) {
-      console.log(error);
+    } catch (err) {
+      console.log(err);
     }
   };
 
-  // ---------------- CHECK IF OPEN ----------------
+  // ---------------- CHECK ACTIVE SESSION (WEEKLY RULE) ----------------
   const isAttendanceOpen = (session: any) => {
+    if (!session?.days || !session?.startTime || !session?.endTime) return false;
+
     const now = new Date();
 
-    const today = now.toLocaleDateString("en-US", {
-      weekday: "long",
-    });
+    const today = now
+      .toLocaleDateString("en-US", { weekday: "long" })
+      .toLowerCase();
 
-    if (!session.days?.includes(today)) return false;
+    const days = session.days.map((d: string) => d.toLowerCase());
+
+    if (!days.includes(today)) return false;
 
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    const [startHour, startMinute] = session.startTime.split(":").map(Number);
-    const [endHour, endMinute] = session.endTime.split(":").map(Number);
+    const [sh, sm] = session.startTime.split(":").map(Number);
+    const [eh, em] = session.endTime.split(":").map(Number);
 
-    const startMinutes = startHour * 60 + startMinute;
-    const endMinutes = endHour * 60 + endMinute;
+    const start = sh * 60 + sm;
+    const end = eh * 60 + em;
 
-    return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+    // ❌ hide expired sessions
+    if (currentMinutes > end) return false;
+
+    return currentMinutes >= start && currentMinutes <= end;
   };
 
   // ---------------- MARK ATTENDANCE ----------------
@@ -106,7 +107,7 @@ function StudentDashboard() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ sessionId }),
+        body: JSON.stringify({ courseId: sessionId }),
       });
 
       const data = await res.json();
@@ -117,11 +118,11 @@ function StudentDashboard() {
 
       toast.success("Attendance marked successfully");
 
-      // 🔥 update UI instantly
+      // instant UI update
       setAttendedSessions((prev) => [...prev, sessionId]);
 
       fetchAttendanceCount();
-    } catch (error) {
+    } catch (err) {
       toast.error("Network error");
     }
   };
@@ -146,14 +147,14 @@ function StudentDashboard() {
     <div className="space-y-6">
       <PageHeader
         title="Student Dashboard"
-        subtitle="View your courses and attendance"
+        subtitle="Weekly Attendance System"
       />
 
       {/* STATS */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Registered Courses" value={myCourses.length} tone="green" />
-        <StatCard label="Attendance Marked" value={attendanceCount} tone="gold" />
-        <StatCard label="Available Sessions" value={sessions.length} tone="blue" />
+        <StatCard label="Attendance This Week" value={attendanceCount} tone="gold" />
+        <StatCard label="Active Sessions Today" value={sessions.length} tone="blue" />
       </div>
 
       {/* COURSES */}
@@ -170,54 +171,64 @@ function StudentDashboard() {
         ))}
       </div>
 
-      {/* ATTENDANCE */}
+      {/* ATTENDANCE SESSIONS */}
       <div className="rounded-2xl bg-white border shadow-sm p-6">
-        <h3 className="font-semibold mb-4">Attendance Sessions</h3>
+        <h3 className="font-semibold mb-4">Today's Attendance</h3>
 
-        {sessions.map((session) => {
-          const alreadyMarked = attendedSessions.includes(session._id);
-          const open = isAttendanceOpen(session);
+        {sessions.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            No active attendance sessions today.
+          </p>
+        ) : (
+          sessions.map((session) => {
+            const sessionId = String(session._id);
 
-          return (
-            <div
-              key={session._id}
-              className="border rounded-xl p-4 flex justify-between items-center mb-3"
-            >
-              <div>
-                <p className="font-semibold">{session.courseCode}</p>
-                <p className="text-sm text-gray-500">{session.courseTitle}</p>
-                <p className="text-xs text-gray-400">
-                  {session.days?.join(", ")} | {session.startTime} - {session.endTime}
-                </p>
+            const alreadyMarked = attendedSessions.includes(sessionId);
+            const open = isAttendanceOpen(session);
+
+            return (
+              <div
+                key={sessionId}
+                className="border rounded-xl p-4 flex justify-between items-center mb-3"
+              >
+                <div>
+                  <p className="font-semibold">{session.courseCode}</p>
+                  <p className="text-sm text-gray-500">
+                    {session.courseTitle}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {session.days?.join(", ")} | {session.startTime} - {session.endTime}
+                  </p>
+                </div>
+
+                <div>
+                  {alreadyMarked ? (
+                    <button
+                      disabled
+                      className="px-4 py-2 rounded-lg bg-gray-400 text-white cursor-not-allowed"
+                    >
+                      Attended This Week
+                    </button>
+                  ) : open ? (
+                    <button
+                      onClick={() => markAttendance(sessionId)}
+                      className="px-4 py-2 rounded-lg bg-[#006B3C] text-white hover:bg-[#024d2c]"
+                    >
+                      Mark Attendance
+                    </button>
+                  ) : (
+                    <span className="text-red-500 text-sm">
+                      Closed
+                    </span>
+                  )}
+                </div>
               </div>
-
-              <div>
-                {alreadyMarked ? (
-                  <button
-                    disabled
-                    className="px-4 py-2 rounded-lg bg-gray-400 text-white cursor-not-allowed"
-                  >
-                    Attended
-                  </button>
-                ) : open ? (
-                  <button
-                    onClick={() => markAttendance(session._id)}
-                    className="px-4 py-2 rounded-lg bg-[#006B3C] text-white hover:bg-[#024d2c]"
-                  >
-                    Mark Attendance
-                  </button>
-                ) : (
-                  <span className="text-red-500 text-sm">
-                    Closed
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );
 }
 
-export default StudentDashboard;  
+export default StudentDashboard;

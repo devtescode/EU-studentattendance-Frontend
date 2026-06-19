@@ -1,49 +1,154 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/RoleLayout";
-import { useApp } from "@/context/AppContext";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/lecturer/records")({
   component: Records,
 });
 
+const API_URL = "http://localhost:4000";
+
 function Records() {
-  const { user, courses, sessions, attendance, students } = useApp();
-  const myCourses = courses.filter((c) => c.lecturerId === user?.id);
-  const mySessions = sessions.filter((s) => myCourses.some((c) => c.id === s.courseId));
+  const token = sessionStorage.getItem("lecturer_token");
+
+  const [records, setRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRecords = async () => {
+    try {
+      const res = await fetch(
+        `${API_URL}/lecturers/lecturer-records`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setRecords(data.records || []);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecords();
+
+    const interval = setInterval(fetchRecords, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const grouped = records.reduce((acc: any, record: any) => {
+    const courseId = record.courseId?._id;
+
+    if (!acc[courseId]) {
+      acc[courseId] = {
+        courseCode: record.courseId?.courseCode,
+        courseTitle: record.courseId?.courseTitle,
+        students: [],
+      };
+    }
+
+    acc[courseId].students.push({
+      id: record.studentId?._id,
+      name: record.studentId?.name,
+      matricNumber: record.studentId?.matricNo,
+      markedAt: record.createdAt,
+    });
+
+    return acc;
+  }, {});
+
   return (
-    <div>
-      <PageHeader title="Attendance Records" subtitle="All sessions and attendance you've recorded" />
+    <div className="space-y-6">
+      <PageHeader
+        title="Attendance Records"
+        subtitle="Students that marked attendance"
+      />
+
       <div className="rounded-2xl bg-white border shadow-sm p-6">
-        {mySessions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No records yet.</p>
+        {loading ? (
+          <p>Loading records...</p>
+        ) : Object.keys(grouped).length === 0 ? (
+          <p className="text-sm text-gray-500">
+            No attendance records yet.
+          </p>
         ) : (
-          <div className="space-y-4">
-            {mySessions.map((s) => {
-              const c = courses.find((co) => co.id === s.courseId);
-              const recs = attendance.filter((a) => a.sessionId === s.id);
-              return (
-                <div key={s.id} className="border rounded-xl p-4">
-                  <div className="flex justify-between items-center">
-                    <p className="font-medium">{c?.code} — {c?.title}</p>
-                    <p className="text-xs text-muted-foreground">{s.date} · {s.startTime}–{s.endTime}</p>
-                  </div>
-                  <p className="text-sm mt-2">
-                    <span className="font-semibold text-[#006B3C]">{recs.length}</span> students marked present
+          <div className="space-y-6">
+            {Object.values(grouped).map((course: any, index) => (
+              <div
+                key={index}
+                className="border rounded-xl overflow-hidden"
+              >
+                <div className="bg-[#006B3C] text-white p-4">
+                  <h3 className="font-semibold">
+                    {course.courseCode}
+                  </h3>
+
+                  <p className="text-sm opacity-90">
+                    {course.courseTitle}
                   </p>
-                  {recs.length > 0 && (
-                    <ul className="mt-2 text-xs text-muted-foreground space-y-1">
-                      {recs.map((r) => {
-                        const st = students.find((x) => x.id === r.studentId);
-                        return <li key={r.studentId}>• {st?.name} ({st?.matricNo})</li>;
-                      })}
-                    </ul>
-                  )}
+
+                  <p className="text-sm mt-1">
+                    Total Attendance:{" "}
+                    {course.students.length}
+                  </p>
                 </div>
-              );
-            })}
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 border-b">
+                        <th className="text-left p-3">Student</th>
+                        <th className="text-left p-3">
+                          Matric Number
+                        </th>
+                        <th className="text-left p-3">
+                          Marked At
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {course.students.map(
+                        (student: any) => (
+                          <tr
+                            key={student.id}
+                            className="border-b"
+                          >
+                            <td className="p-3">
+                              {student.name}
+                            </td>
+
+                            <td className="p-3">
+                              {student.matricNumber}
+                            </td>
+
+                            <td className="p-3">
+                              {new Date(
+                                student.markedAt
+                              ).toLocaleString()}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
     </div>
   );
 }
+
+export default Records;
