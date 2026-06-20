@@ -91,11 +91,11 @@ function Home() {
         ))}
       </section>
 
-      <footer className="border-t bg-white">
+      {/* <footer className="border-t bg-white">
         <div className="max-w-6xl mx-auto px-6 py-4 text-xs text-muted-foreground text-center">
           © {new Date().getFullYear()} Elizade University — Attendance Monitoring System
         </div>
-      </footer>
+      </footer> */}
     </div>
   );
 }
