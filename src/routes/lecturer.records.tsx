@@ -240,7 +240,7 @@ function Records() {
         subtitle="Students that marked attendance"
       />
 
-      <div className="rounded-2xl bg-white border shadow-sm p-6">
+      <div className="rounded p-0">
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#006B3C]"></div>
@@ -250,7 +250,7 @@ function Records() {
             No attendance records yet.
           </p>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-2">
             {Object.values(grouped).map(
               (course: any, index) => (
                 <div
@@ -280,7 +280,7 @@ function Records() {
                       className="bg-white text-[#006B3C] px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 flex items-center gap-2"
                     >
                       <Calendar className="h-4 w-4" />
-                      View Today's Attendance
+                       Today
                     </button>
                   </div>
 
@@ -462,7 +462,7 @@ function Records() {
       {/* MODAL - Student Attendance Details */}
       {isStudentModalOpen && selectedStudent && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[85vh] overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b p-5">
               <div>
                 <h2 className="font-bold text-lg flex items-center gap-2">
@@ -538,7 +538,7 @@ function Records() {
                         <tr className="bg-gray-50 border-b">
                           <th className="text-left p-3">#</th>
                           <th className="text-left p-3">Date</th>
-                          <th className="text-left p-3">Day</th>
+                          {/* <th className="text-left p-3">Day</th> */}
                           <th className="text-left p-3">Time</th>
                           <th className="text-left p-3">Week</th>
                         </tr>
@@ -552,9 +552,9 @@ function Records() {
                               <td className="p-3 font-medium">
                                 {formatDate(date)}
                               </td>
-                              <td className="p-3 text-gray-600">
+                              {/* <td className="p-3 text-gray-600">
                                 {date.toLocaleDateString('en-US', { weekday: 'long' })}
-                              </td>
+                              </td> */}
                               <td className="p-3 text-gray-500">
                                 {date.toLocaleTimeString()}
                               </td>
