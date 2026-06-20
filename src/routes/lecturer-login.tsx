@@ -56,7 +56,15 @@ function LecturerLogin() {
       }
 
       // save token
+      // sessionStorage.setItem("lecturer_token", data.token);
+      // save token
       sessionStorage.setItem("lecturer_token", data.token);
+
+      // save lecturer details
+      sessionStorage.setItem(
+        "lecturer_data",
+        JSON.stringify(data.lecturer)
+      );
 
       toast.success(`Welcome, ${data.lecturer.name}`);
 
