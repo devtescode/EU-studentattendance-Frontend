@@ -15,7 +15,7 @@ export const Route = createFileRoute("/student-signup")({
 function StudentSignup() {
   const navigate = useNavigate();
 
-  const API_URL = "http://localhost:4000";
+  const API_URL = "https://eu-studentattendance-backend.onrender.com";
 
   const [loading, setLoading] = useState(false);
 

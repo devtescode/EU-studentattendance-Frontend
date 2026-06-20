@@ -11,7 +11,7 @@ export const Route = createFileRoute("/admin/lecturers")({
   component: ManageLecturers,
 });
 
-const API_URL = "http://localhost:4000";
+const API_URL = "https://eu-studentattendance-backend.onrender.com";
 
 function ManageLecturers() {
   const [lecturers, setLecturers] = useState<any[]>([]);

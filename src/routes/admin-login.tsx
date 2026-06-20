@@ -33,7 +33,8 @@ function AdminLogin() {
     password: "",
   });
 
-  const API_URL = "http://localhost:4000";
+  // const API_URL = "http://localhost:4000";
+  const API_URL = "https://eu-studentattendance-backend.onrender.com";
 
   const isValidEmail = (email: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);

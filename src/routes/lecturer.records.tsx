@@ -7,7 +7,7 @@ export const Route = createFileRoute("/lecturer/records")({
   component: Records,
 });
 
-const API_URL = "http://localhost:4000";
+const API_URL = "https://eu-studentattendance-backend.onrender.com";
 
 // Type definitions
 interface Student {

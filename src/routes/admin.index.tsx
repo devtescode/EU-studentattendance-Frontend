@@ -7,7 +7,7 @@ export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
 });
 
-const API_URL = "http://localhost:4000";
+const API_URL = "https://eu-studentattendance-backend.onrender.com";
 
 function AdminDashboard() {
   const [data, setData] = useState<any>({

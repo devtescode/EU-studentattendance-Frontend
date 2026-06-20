@@ -11,7 +11,7 @@ export const Route = createFileRoute("/student-login")({
   component: StudentLogin,
 });
 
-const API_URL = "http://localhost:4000";
+const API_URL = "https://eu-studentattendance-backend.onrender.com";
 
 function StudentLogin() {
   const navigate = useNavigate();

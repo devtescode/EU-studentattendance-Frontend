@@ -8,7 +8,7 @@ export const Route = createFileRoute("/student/available-courses")({
   component: AvailableCourses,
 });
 
-const API_URL = "http://localhost:4000";
+const API_URL = "https://eu-studentattendance-backend.onrender.com";
 
 function AvailableCourses() {
   const token = sessionStorage.getItem("student_token");

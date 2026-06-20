@@ -7,7 +7,7 @@ export const Route = createFileRoute("/admin/students")({
   component: ManageStudents,
 });
 
-const API_URL = "http://localhost:4000";
+const API_URL = "https://eu-studentattendance-backend.onrender.com";
 
 function ManageStudents() {
   const token = sessionStorage.getItem("admin_token");

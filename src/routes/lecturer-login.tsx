@@ -19,7 +19,7 @@ function LecturerLogin() {
 
   const [loading, setLoading] = useState(false);
 
-  const API_URL = "http://localhost:4000";
+  const API_URL = "https://eu-studentattendance-backend.onrender.com";
 
   // --------------------------
   // SPINNER
