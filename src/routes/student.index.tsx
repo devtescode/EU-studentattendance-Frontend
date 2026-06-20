@@ -15,7 +15,6 @@ function StudentDashboard() {
   const [myCourses, setMyCourses] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [attendanceCount, setAttendanceCount] = useState(0);
-  const [attendedSessions, setAttendedSessions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   // ---------------- COURSES ----------------
@@ -40,7 +39,13 @@ function StudentDashboard() {
       });
 
       const data = await res.json();
-      if (res.ok) setSessions(data.sessions || []);
+      if (res.ok) {
+        setSessions(data.sessions || []);
+        // Also update attendance count if backend sends it
+        if (data.weekAttendance !== undefined) {
+          setAttendanceCount(data.weekAttendance);
+        }
+      }
     } catch (err) {
       console.log(err);
     }
@@ -57,45 +62,10 @@ function StudentDashboard() {
 
       if (res.ok) {
         setAttendanceCount(data.attendance?.length || 0);
-
-        const ids = (data.attendance || [])
-          .map((a: any) => a.sessionId?._id || a.sessionId)
-          .filter(Boolean)
-          .map(String);
-
-        setAttendedSessions(ids);
       }
     } catch (err) {
       console.log(err);
     }
-  };
-
-  // ---------------- CHECK ACTIVE SESSION (WEEKLY RULE) ----------------
-  const isAttendanceOpen = (session: any) => {
-    if (!session?.days || !session?.startTime || !session?.endTime) return false;
-
-    const now = new Date();
-
-    const today = now
-      .toLocaleDateString("en-US", { weekday: "long" })
-      .toLowerCase();
-
-    const days = session.days.map((d: string) => d.toLowerCase());
-
-    if (!days.includes(today)) return false;
-
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-    const [sh, sm] = session.startTime.split(":").map(Number);
-    const [eh, em] = session.endTime.split(":").map(Number);
-
-    const start = sh * 60 + sm;
-    const end = eh * 60 + em;
-
-    // ❌ hide expired sessions
-    if (currentMinutes > end) return false;
-
-    return currentMinutes >= start && currentMinutes <= end;
   };
 
   // ---------------- MARK ATTENDANCE ----------------
@@ -118,10 +88,12 @@ function StudentDashboard() {
 
       toast.success("Attendance marked successfully");
 
-      // instant UI update
-      setAttendedSessions((prev) => [...prev, sessionId]);
+      // 🔥 IMPORTANT: Refresh both sessions and attendance count
+      await Promise.all([
+        fetchSessions(),  // This will update the sessions with new isAlreadyMarked values
+        fetchAttendanceCount(),
+      ]);
 
-      fetchAttendanceCount();
     } catch (err) {
       toast.error("Network error");
     }
@@ -161,65 +133,82 @@ function StudentDashboard() {
       <div className="rounded-2xl bg-white border shadow-sm p-6">
         <h3 className="font-semibold mb-4">Registered Courses</h3>
 
-        {myCourses.map((course) => (
-          <div key={course._id} className="border rounded-xl p-4 mb-3">
-            <p className="text-xs text-[#C9A227] font-semibold">
-              {course.courseCode}
-            </p>
-            <h4 className="font-semibold">{course.courseTitle}</h4>
-          </div>
-        ))}
+        {myCourses.length === 0 ? (
+          <p className="text-sm text-gray-500">No courses registered yet.</p>
+        ) : (
+          myCourses.map((course) => (
+            <div key={course._id} className="border rounded-xl p-4 mb-3">
+              <p className="text-xs text-[#C9A227] font-semibold">
+                {course.courseCode}
+              </p>
+              <h4 className="font-semibold">{course.courseTitle}</h4>
+            </div>
+          ))
+        )}
       </div>
 
       {/* ATTENDANCE SESSIONS */}
       <div className="rounded-2xl bg-white border shadow-sm p-6">
         <h3 className="font-semibold mb-4">Today's Attendance</h3>
-
+        
         {sessions.length === 0 ? (
-          <p className="text-sm text-gray-500">
-            No active attendance sessions today.
-          </p>
+          <div className="text-center py-8">
+            <p className="text-sm text-gray-500">
+              No active attendance sessions today.
+            </p>
+            <p className="text-xs text-gray-400 mt-2">
+              Check your course schedule for available days and times.
+            </p>
+          </div>
         ) : (
           sessions.map((session) => {
             const sessionId = String(session._id);
 
-            const alreadyMarked = attendedSessions.includes(sessionId);
-            const open = isAttendanceOpen(session);
+            // Use the flag from backend
+            const alreadyMarked = session.isAlreadyMarked;
+            const open = session.isOpen;
 
             return (
               <div
                 key={sessionId}
-                className="border rounded-xl p-4 flex justify-between items-center mb-3"
+                className="border rounded-xl p-4 flex justify-between items-center mb-3 hover:shadow-md transition-shadow"
               >
                 <div>
                   <p className="font-semibold">{session.courseCode}</p>
                   <p className="text-sm text-gray-500">
                     {session.courseTitle}
                   </p>
-                  <p className="text-xs text-gray-400">
-                    {session.days?.join(", ")} | {session.startTime} - {session.endTime}
-                  </p>
+                  <div className="flex gap-2 text-xs text-gray-400 mt-1">
+                    <span>{session.days?.join(", ")}</span>
+                    <span>•</span>
+                    <span>{session.startTime} - {session.endTime}</span>
+                  </div>
                 </div>
 
                 <div>
                   {alreadyMarked ? (
                     <button
                       disabled
-                      className="px-4 py-2 rounded-lg bg-gray-400 text-white cursor-not-allowed"
+                      className="px-4 py-2 rounded-lg bg-green-100 text-green-700 cursor-not-allowed font-medium"
                     >
-                      Attended This Week
+                      ✓ Attended Today
                     </button>
                   ) : open ? (
                     <button
                       onClick={() => markAttendance(sessionId)}
-                      className="px-4 py-2 rounded-lg bg-[#006B3C] text-white hover:bg-[#024d2c]"
+                      className="px-4 py-2 rounded-lg bg-[#006B3C] text-white hover:bg-[#024d2c] transition-colors font-medium"
                     >
                       Mark Attendance
                     </button>
                   ) : (
-                    <span className="text-red-500 text-sm">
-                      Closed
-                    </span>
+                    <div className="text-center">
+                      <span className="text-red-500 text-sm font-medium">
+                        Session Closed
+                      </span>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Time expired
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
