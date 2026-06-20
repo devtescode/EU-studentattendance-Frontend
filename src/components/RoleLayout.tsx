@@ -103,16 +103,16 @@ export function RoleLayout({ role }: { role: Role }) {
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 flex items-center justify-between gap-3 border-b bg-white px-4">
             <div className="flex items-center gap-3 min-w-0">
-              <SidebarTrigger />
+              <SidebarTrigger /> 
               <h1 className="text-base font-semibold truncate">Elizade University</h1>
             </div>
             <div className="flex items-center gap-3 shrink-0">
-              <div className="hidden sm:flex items-center gap-2">
+              {/* <div className="hidden sm:flex items-center gap-2">
                 <div className="h-8 w-8 rounded-full bg-[#006B3C] grid place-items-center text-white text-xs font-bold">
                   {(user?.name ?? "U").charAt(0).toUpperCase()}
                 </div>
                 <span className="text-sm font-medium">{user?.name ?? "User"}</span>
-              </div>
+              </div> */}
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
                 <span className="hidden sm:inline ml-1">Logout</span>
