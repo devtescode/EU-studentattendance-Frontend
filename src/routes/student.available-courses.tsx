@@ -169,7 +169,7 @@ function AvailableCourses() {
           className="w-full mt-4 bg-[#006B3C] hover:bg-[#005230]"
         >
           {loading && (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            <Loader2 className="h-4 w-4 animate-spin mr-0" />
           )}
           {loading ? "Please wait..." : "Register Course"}
         </Button>
