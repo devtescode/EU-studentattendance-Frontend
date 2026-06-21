@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/RoleLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/student/available-courses")({
   component: AvailableCourses,
@@ -15,6 +16,7 @@ function AvailableCourses() {
 
   const [courses, setCourses] = useState<any[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const fetchCourses = async () => {
     try {
@@ -34,12 +36,44 @@ function AvailableCourses() {
     fetchCourses();
   }, []);
 
+  // const registerCourse = async () => {
+  //   if (!selectedCourse) {
+  //     return toast.error("Please select a course");
+  //   }
+
+  //   try {
+
+  //     const res = await fetch(`${API_URL}/students/register-course`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //       body: JSON.stringify({
+  //         courseId: selectedCourse,
+  //       }),
+  //     });
+
+  //     const data = await res.json();
+
+  //     if (!res.ok) {
+  //       return toast.error(data.message);
+  //     }
+
+  //     toast.success("Course registered successfully");
+  //   } catch {
+  //     toast.error("Network error");
+  //   }
+  // };
+
   const registerCourse = async () => {
     if (!selectedCourse) {
       return toast.error("Please select a course");
     }
 
     try {
+      setLoading(true);
+
       const res = await fetch(`${API_URL}/students/register-course`, {
         method: "POST",
         headers: {
@@ -58,11 +92,15 @@ function AvailableCourses() {
       }
 
       toast.success("Course registered successfully");
+
+      // Optional: clear selected course
+      setSelectedCourse("");
     } catch {
       toast.error("Network error");
+    } finally {
+      setLoading(false);
     }
   };
-
   const selected = courses.find(
     (course) => course._id === selectedCourse
   );
@@ -127,9 +165,13 @@ function AvailableCourses() {
 
         <Button
           onClick={registerCourse}
-          className="w-full mt-4 bg-[#006B3C]"
+          disabled={loading}
+          className="w-full mt-4 bg-[#006B3C] hover:bg-[#005230]"
         >
-          Register Course
+          {loading && (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          )}
+          {loading ? "Please wait..." : "Register Course"}
         </Button>
       </div>
     </div>
