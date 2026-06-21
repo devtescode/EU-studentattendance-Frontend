@@ -80,11 +80,22 @@ export function RoleLayout({ role }: { role: Role }) {
 
   const items = navByRole[role];
 
+  // const handleLogout = () => {
+  //   logout();
+  //   navigate({ to: "/" });
+  // };
+
   const handleLogout = () => {
+    // 🔥 Clear EVERYTHING stored in sessionStorage
+    sessionStorage.clear();
+
+    // optional: also clear localStorage if you use it
+    // localStorage.clear();
+
     logout();
+
     navigate({ to: "/" });
   };
-
   return (
     <SidebarProvider>
       <SidebarAutoCloseHandler pathname={pathname} />
