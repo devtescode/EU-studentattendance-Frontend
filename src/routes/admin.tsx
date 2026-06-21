@@ -1,6 +1,8 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { RoleLayout } from "@/components/RoleLayout";
 import { useEffect, useState } from "react";
+import { jwtDecode } from "jwt-decode";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -11,9 +13,47 @@ function AdminLayout() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const t = sessionStorage.getItem("admin_token");
-    setToken(t);
-    setLoading(false);
+    const checkToken = () => {
+      const t = sessionStorage.getItem("admin_token");
+
+      if (!t) {
+        setToken(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const decoded: any = jwtDecode(t);
+
+        // ⛔ CHECK EXPIRY
+        const isExpired = decoded.exp * 1000 < Date.now();
+
+        if (isExpired) {
+          sessionStorage.removeItem("admin_token");
+          sessionStorage.removeItem("admin_data");
+
+          toast.error("Session expired. Please login again.");
+
+          setToken(null);
+          setLoading(false);
+          return;
+        }
+
+        setToken(t);
+        setLoading(false);
+      } catch (err) {
+        sessionStorage.removeItem("admin_token");
+        setToken(null);
+        setLoading(false);
+      }
+    };
+
+    checkToken();
+
+    // 🔥 auto re-check every 30 seconds (optional but good)
+    const interval = setInterval(checkToken, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
