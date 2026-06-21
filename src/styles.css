@@ -27,6 +27,11 @@
  * 2. Register it in @theme inline as --color-<name>: var(--<name>)
  */
 
+ html, body {
+  overflow-x: hidden;
+  touch-action: manipulation;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
