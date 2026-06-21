@@ -69,7 +69,7 @@ function Home() {
           Attendance, made simple.
         </h1>
         <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-          Choose your role to continue. Each portal is tailored for its users — administrators, lecturers and students.
+          Choose your role to continue. Each portal is tailored for its users administrators, lecturers and students.
         </p>
       </section>
 
