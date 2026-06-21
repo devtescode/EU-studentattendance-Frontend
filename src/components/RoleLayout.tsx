@@ -98,7 +98,7 @@ export function RoleLayout({ role }: { role: Role }) {
           <SidebarHeader className="border-b border-sidebar-border">
             <div className="flex items-center gap-2 px-2 py-3">
               <div className="h-9 w-9 rounded-lg bg-[#006B3C] grid place-items-center text-white font-bold">
-                E
+                <img src="https://www.educatly.com/_next/image?url=https://api.educatly.com//rails/active_storage/blobs/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBBekZuQlE9PSIsImV4cCI6bnVsbCwicHVyIjoiYmxvYl9pZCJ9fQ==--444a961615cfd3865a74c1b4b8b010e438b037f7/elizade_university_ilara_mokin_profile&w=3840&q=75" alt="" />
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold truncate">

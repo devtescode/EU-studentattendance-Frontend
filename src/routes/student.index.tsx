@@ -11,6 +11,9 @@ const API_URL = "https://eu-studentattendance-backend.onrender.com";
 
 function StudentDashboard() {
   const token = sessionStorage.getItem("student_token");
+  const storedStudent = JSON.parse(sessionStorage.getItem("student_data") || "{}");
+  const studentName = storedStudent?.name;
+  const matricNo = storedStudent?.matricNo;
 
   const [myCourses, setMyCourses] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
@@ -121,6 +124,17 @@ function StudentDashboard() {
         title="Student Dashboard"
         subtitle="Weekly Attendance System"
       />
+      <div className="bg-white border rounded-2xl p-4 shadow-sm">
+        <p className="text-xs text-gray-500">Logged in as</p>
+
+        <h2 className="text-lg font-semibold text-[#006B3C]">
+          {studentName}
+        </h2>
+
+        <p className="text-sm text-gray-600">
+          Matric No: <span className="font-medium">{matricNo}</span>
+        </p>
+      </div>
 
       {/* STATS */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -150,7 +164,7 @@ function StudentDashboard() {
       {/* ATTENDANCE SESSIONS */}
       <div className="rounded-2xl bg-white border shadow-sm p-6">
         <h3 className="font-semibold mb-4">Today's Attendance</h3>
-        
+
         {sessions.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-sm text-gray-500">

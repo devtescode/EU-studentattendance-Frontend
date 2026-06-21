@@ -23,7 +23,9 @@ export function AuthShell({
     <div className="min-h-screen grid lg:grid-cols-2 bg-[#F5F7FA]">
       <div className={`hidden lg:flex flex-col justify-between p-10 text-white bg-gradient-to-br ${accents[accent]}`}>
         <Link to="/" className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-white/10 grid place-items-center font-bold">E</div>
+          <div className="h-10 w-10 rounded-xl bg-white/10 grid place-items-center font-bold">
+          <img src="https://www.educatly.com/_next/image?url=https://api.educatly.com//rails/active_storage/blobs/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBBekZuQlE9PSIsImV4cCI6bnVsbCwicHVyIjoiYmxvYl9pZCJ9fQ==--444a961615cfd3865a74c1b4b8b010e438b037f7/elizade_university_ilara_mokin_profile&w=3840&q=75" alt="" />
+          </div>
           <div>
             <p className="font-semibold">Elizade University</p>
             <p className="text-xs opacity-80">Attendance Monitoring System</p>
@@ -35,7 +37,8 @@ export function AuthShell({
             A modern way to manage attendance across faculties, courses, and sessions.
           </p>
         </div>
-        <p className="text-xs opacity-70">© {new Date().getFullYear()} Elizade University</p>
+        {/* © {new Date().getFullYear()} */}
+        <p className="text-xs opacity-70"> Elizade University</p>
       </div>
       <div className="flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-md">

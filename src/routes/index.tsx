@@ -46,7 +46,9 @@ function Home() {
       <header className="bg-white border-b">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-[#006B3C] grid place-items-center text-white font-bold">E</div>
+            <div className="h-10 w-10 rounded-xl bg-[#006B3C] grid place-items-center text-white font-bold">
+              <img src="https://www.educatly.com/_next/image?url=https://api.educatly.com//rails/active_storage/blobs/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBBekZuQlE9PSIsImV4cCI6bnVsbCwicHVyIjoiYmxvYl9pZCJ9fQ==--444a961615cfd3865a74c1b4b8b010e438b037f7/elizade_university_ilara_mokin_profile&w=3840&q=75" alt="" />
+            </div>
             <div>
               <p className="font-semibold text-[#1C1C1C]">Elizade University</p>
               <p className="text-xs text-muted-foreground">Attendance Monitoring System</p>
