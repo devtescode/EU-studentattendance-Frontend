@@ -8,6 +8,7 @@ export const Route = createFileRoute("/student/")({
 });
 
 const API_URL = "https://eu-studentattendance-backend.onrender.com";
+// const API_URL = "http://localhost:4000";
 
 function StudentDashboard() {
   const token = sessionStorage.getItem("student_token");
@@ -28,6 +29,7 @@ function StudentDashboard() {
       });
 
       const data = await res.json();
+      console.log(data, "Dataaaaacourses")
       if (res.ok) setMyCourses(data.courses || []);
     } catch (err) {
       console.log(err);
@@ -42,6 +44,8 @@ function StudentDashboard() {
       });
 
       const data = await res.json();
+      console.log(data, "dataaaaaaaaa");
+      
       if (res.ok) {
         setSessions(data.sessions || []);
         // Also update attendance count if backend sends it

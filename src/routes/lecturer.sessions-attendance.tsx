@@ -106,6 +106,8 @@ function SessionsAttendance() {
       });
 
       const data = await res.json();
+      console.log(data, "dataaaaa");
+      
 
       if (!res.ok) return toast.error(data.message);
 
@@ -140,6 +142,7 @@ function SessionsAttendance() {
 
     setEditId(session._id);
     setIsEditing(true);
+    // console.log("sessionID", session._id)
   };
 
   // ================= DELETE =================
