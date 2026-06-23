@@ -44,8 +44,6 @@ function StudentDashboard() {
       });
 
       const data = await res.json();
-      console.log(data, "dataaaaaaaaa");
-      
       if (res.ok) {
         setSessions(data.sessions || []);
         // Also update attendance count if backend sends it
@@ -104,6 +102,18 @@ function StudentDashboard() {
     } catch (err) {
       toast.error("Network error");
     }
+  };
+
+
+  const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(":").map(Number);
+
+    const period = hours >= 12 ? "PM" : "AM";
+    const formattedHours = hours % 12 || 12;
+
+    return `${formattedHours}:${minutes
+      .toString()
+      .padStart(2, "0")} ${period}`;
   };
 
   useEffect(() => {
@@ -199,7 +209,10 @@ function StudentDashboard() {
                   <div className="flex gap-2 text-xs text-gray-400 mt-1">
                     <span>{session.days?.join(", ")}</span>
                     <span>•</span>
-                    <span>{session.startTime} - {session.endTime}</span>
+                    {/* <span>{session.startTime} - {session.endTime}</span> */}
+                    <span className="font-medium text-[#006B3C]">
+                      {formatTime(session.startTime)} - {formatTime(session.endTime)}
+                    </span>
                   </div>
                 </div>
 
