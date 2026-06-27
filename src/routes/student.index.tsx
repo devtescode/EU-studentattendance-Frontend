@@ -153,7 +153,8 @@ function StudentDashboard() {
       {/* STATS */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Registered Courses" value={myCourses.length} tone="green" />
-        <StatCard label="Attendance This Week" value={attendanceCount} tone="gold" />
+        {/* <StatCard label="Attendance This Week" value={attendanceCount} tone="gold" /> */}
+        <StatCard label="Attendance Marked" value={attendanceCount} tone="gold" />
         <StatCard label="Active Sessions Today" value={sessions.length} tone="blue" />
       </div>
 
